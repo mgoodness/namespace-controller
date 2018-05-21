@@ -31,6 +31,7 @@ import:
   - rest
   - tools/clientcmd
   - util/retry
+  - kubernetes/typed/admissionregistration/v1beta1
 testImport:
 - package: github.com/davecgh/go-spew
   version: ^1.1.0

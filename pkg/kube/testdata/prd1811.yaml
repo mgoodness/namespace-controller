@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  annotations:
+    ticketmaster.com/admins: "anydc, chet, ericl, paul.otto, nicholasc"
+    ticketmaster.com/tiller: ""
+  name: prd1811
