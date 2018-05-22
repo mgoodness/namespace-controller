@@ -6,7 +6,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/go-ldap/ldap"
+	ldapapi "github.com/go-ldap/ldap"
 )
 
 type searchRequest struct {
@@ -31,13 +31,13 @@ type Config struct {
 type LDAP struct {
 	annotationPrefix string
 	baseDN           string
-	client           ldap.Client
+	client           ldapapi.Client
 	commonOrgUnits   string
 	namespace        string
 }
 
 // New creates a new LDAP struct
-func New(config *Config, ldapClient ldap.Client) *LDAP {
+func New(config *Config, ldapClient ldapapi.Client) *LDAP {
 	return &LDAP{
 		annotationPrefix: config.AnnotationPrefix,
 		baseDN:           config.BaseDN,
@@ -101,7 +101,7 @@ func (l *LDAP) addOU(dn string) error {
 		return nil
 	}
 
-	request := ldap.NewAddRequest(dn)
+	request := ldapapi.NewAddRequest(dn)
 	request.Attribute("objectClass", []string{"organizationalUnit", "top"})
 	request.Attribute("ou", []string{name})
 	request.Attribute("name", []string{name})
@@ -116,7 +116,7 @@ func (l *LDAP) addOU(dn string) error {
 func (l *LDAP) addGroup(dn string) error {
 	name, base := splitDN(dn)
 
-	var entries []*ldap.Entry
+	var entries []*ldapapi.Entry
 	entries, err := l.searchGroup(base, name)
 	if err != nil {
 		return err
@@ -126,7 +126,7 @@ func (l *LDAP) addGroup(dn string) error {
 		return nil
 	}
 
-	request := ldap.NewAddRequest(dn)
+	request := ldapapi.NewAddRequest(dn)
 	request.Attribute("objectClass", []string{"group", "top"})
 	request.Attribute("cn", []string{name})
 	request.Attribute("name", []string{name})
@@ -162,7 +162,7 @@ func (l *LDAP) modifyGroupSetMembers(dn string, members []string) error {
 		}
 	}
 
-	request := ldap.NewModifyRequest(dn)
+	request := ldapapi.NewModifyRequest(dn)
 	request.Replace("member", accounts)
 
 	if err := l.client.Modify(request); err != nil {
@@ -172,9 +172,9 @@ func (l *LDAP) modifyGroupSetMembers(dn string, members []string) error {
 	return nil
 }
 
-func (l *LDAP) search(r *searchRequest) ([]*ldap.Entry, error) {
-	request := ldap.NewSearchRequest(
-		r.baseDN, ldap.ScopeWholeSubtree, ldap.NeverDerefAliases, r.sizeLimit, 0, false, r.filter, r.attributes, nil,
+func (l *LDAP) search(r *searchRequest) ([]*ldapapi.Entry, error) {
+	request := ldapapi.NewSearchRequest(
+		r.baseDN, ldapapi.ScopeWholeSubtree, ldapapi.NeverDerefAliases, r.sizeLimit, 0, false, r.filter, r.attributes, nil,
 	)
 
 	search, err := l.client.Search(request)
@@ -185,7 +185,7 @@ func (l *LDAP) search(r *searchRequest) ([]*ldap.Entry, error) {
 	return search.Entries, nil
 }
 
-func (l *LDAP) searchOU(dn, ou string) (results []*ldap.Entry, err error) {
+func (l *LDAP) searchOU(dn, ou string) (results []*ldapapi.Entry, err error) {
 	request := &searchRequest{
 		baseDN:     dn,
 		sizeLimit:  2,
@@ -196,7 +196,7 @@ func (l *LDAP) searchOU(dn, ou string) (results []*ldap.Entry, err error) {
 	return l.search(request)
 }
 
-func (l *LDAP) searchGroup(dn, cn string) (results []*ldap.Entry, err error) {
+func (l *LDAP) searchGroup(dn, cn string) (results []*ldapapi.Entry, err error) {
 	request := &searchRequest{
 		baseDN:     dn,
 		sizeLimit:  2,
@@ -207,7 +207,7 @@ func (l *LDAP) searchGroup(dn, cn string) (results []*ldap.Entry, err error) {
 	return l.search(request)
 }
 
-func (l *LDAP) searchMember(cn string) (results []*ldap.Entry, err error) {
+func (l *LDAP) searchMember(cn string) (results []*ldapapi.Entry, err error) {
 	request := &searchRequest{
 		baseDN:     l.baseDN,
 		sizeLimit:  1000,

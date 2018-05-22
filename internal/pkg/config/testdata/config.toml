@@ -1,0 +1,14 @@
+[ldap]
+annotationPrefix = "ldap.ticketmaster.com"
+baseDN = "OU=Techops,DC=techops,DC=info"
+commonOrgUnits = "OU=Kubernetes"
+enabled = false
+environment = "nonprod"
+hostname = "ldaps.tmaws.io"
+password = "fakepass"
+username = "fakeuser"
+
+[pim]
+token = ""
+apiVersion = "v1"
+baseURL = "http://pim.tmaws.io"

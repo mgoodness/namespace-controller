@@ -1,5 +1,5 @@
-hash: cbefe473eb4a4d143316b8489badeb8f06b83e1202166503afd00de348dfc19a
-updated: 2018-05-21T17:01:01.447092-05:00
+hash: 09a1257ec4ed0fd9f5b78ac3ad3f8ce03d3177839e421719c736fcba07a5a2e0
+updated: 2018-05-22T15:56:26.08205-05:00
 imports:
 - name: git.tmaws.io/ProductInventoryManagement/go-pimapi
   version: 320000649668009184dfa9d581b3b22321bc9a29
@@ -283,7 +283,10 @@ imports:
   - util/integer
   - util/retry
 testImports:
-- name: github.com/davecgh/go-spew
-  version: 346938d642f2ec3594ed81d874461961cd0faa76
+- name: github.com/google/go-cmp
+  version: 5411ab924f9ffa6566244a9e504bc347edacffd3
   subpackages:
-  - spew
+  - cmp
+  - cmp/internal/diff
+  - cmp/internal/function
+  - cmp/internal/value

@@ -5,7 +5,6 @@ import:
   version: ^2.0.0
 - package: github.com/go-ldap/ldap
   version: ^2.5.1
-- package: github.com/golang/glog
 - package: github.com/rs/zerolog
   version: ^1.7.0
   subpackages:
@@ -32,8 +31,3 @@ import:
   - tools/clientcmd
   - util/retry
   - kubernetes/typed/admissionregistration/v1beta1
-testImport:
-- package: github.com/davecgh/go-spew
-  version: ^1.1.0
-  subpackages:
-  - spew

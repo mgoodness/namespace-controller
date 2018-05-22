@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/go-ldap/ldap"
+	ldapapi "github.com/go-ldap/ldap"
 )
 
 type MockClient struct{}
@@ -25,11 +25,11 @@ func (m *MockClient) Bind(username, password string) error {
 	return nil
 }
 
-func (m *MockClient) SimpleBind(simpleBindRequest *ldap.SimpleBindRequest) (*ldap.SimpleBindResult, error) {
+func (m *MockClient) SimpleBind(simpleBindRequest *ldapapi.SimpleBindRequest) (*ldapapi.SimpleBindResult, error) {
 	return nil, nil
 }
 
-func (m *MockClient) Add(addRequest *ldap.AddRequest) error {
+func (m *MockClient) Add(addRequest *ldapapi.AddRequest) error {
 	switch addRequest.DN {
 	case "OU=prd367,OU=Kubernetes,OU=Techops,DC=techops,DC=info":
 		return errors.New("Unable to add OU")
@@ -40,11 +40,11 @@ func (m *MockClient) Add(addRequest *ldap.AddRequest) error {
 	return nil
 }
 
-func (m *MockClient) Del(delRequest *ldap.DelRequest) error {
+func (m *MockClient) Del(delRequest *ldapapi.DelRequest) error {
 	return nil
 }
 
-func (m *MockClient) Modify(modifyRequest *ldap.ModifyRequest) error {
+func (m *MockClient) Modify(modifyRequest *ldapapi.ModifyRequest) error {
 	return nil
 }
 
@@ -52,22 +52,22 @@ func (m *MockClient) Compare(dn, attribute, value string) (bool, error) {
 	return false, nil
 }
 
-func (m *MockClient) PasswordModify(passwordModifyRequest *ldap.PasswordModifyRequest) (*ldap.PasswordModifyResult, error) {
+func (m *MockClient) PasswordModify(passwordModifyRequest *ldapapi.PasswordModifyRequest) (*ldapapi.PasswordModifyResult, error) {
 	return nil, nil
 }
 
-func (m *MockClient) Search(searchRequest *ldap.SearchRequest) (*ldap.SearchResult, error) {
+func (m *MockClient) Search(searchRequest *ldapapi.SearchRequest) (*ldapapi.SearchResult, error) {
 	switch searchRequest.Filter {
 	case "(&(objectClass=organizationalUnit)(ou=prd1811))":
 		return nil, errors.New(`LDAP Result Code 32 "No Such Object"`)
 	case "(&(objectClass=user)(|(sAMAccountName=mike.goodness)(CN=mike.goodness)))":
-		return &ldap.SearchResult{Entries: []*ldap.Entry{&ldap.Entry{DN: "mike.goodness"}}}, nil
+		return &ldapapi.SearchResult{Entries: []*ldapapi.Entry{&ldapapi.Entry{DN: "mike.goodness"}}}, nil
 	}
 
-	return &ldap.SearchResult{}, nil
+	return &ldapapi.SearchResult{}, nil
 }
 
-func (m *MockClient) SearchWithPaging(searchRequest *ldap.SearchRequest, pagingSize uint32) (*ldap.SearchResult, error) {
+func (m *MockClient) SearchWithPaging(searchRequest *ldapapi.SearchRequest, pagingSize uint32) (*ldapapi.SearchResult, error) {
 	return nil, nil
 }
 
