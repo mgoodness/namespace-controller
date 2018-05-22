@@ -56,12 +56,8 @@ func (m *MockClient) Get(params map[string]string) (assetItems pimapi.AssetItems
 	return assetItems, err
 }
 
-func getTestAssetClient() AssetClient {
-	return &MockClient{}
-}
-
 func TestValidateNamespace(t *testing.T) {
-	c := getTestAssetClient()
+	c := &MockClient{}
 
 	// Test default regex
 	p := New("", c)
@@ -100,7 +96,7 @@ func TestPrepareAnnotations(t *testing.T) {
 		"ticketmaster.com/tech-owner",
 	}
 
-	c := getTestAssetClient()
+	c := &MockClient{}
 	p := New("", c)
 
 	name := "prd1811"
