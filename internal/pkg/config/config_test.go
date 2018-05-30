@@ -4,6 +4,8 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/mgoodness/namespace-controller/pkg/tiller"
+
 	pimapi "git.tmaws.io/ProductInventoryManagement/go-pimapi"
 	"github.com/google/go-cmp/cmp"
 	"github.com/mgoodness/namespace-controller/pkg/ldap"
@@ -32,6 +34,11 @@ func TestNew(t *testing.T) {
 		BaseURL:    "http://pim.tmaws.io",
 	}
 
+	tillerConfig := tiller.Config{
+		Annotation:     "ticketmaster.com/tiller",
+		DefaultVersion: "v2.9.1",
+	}
+
 	want := &Config{
 		Debug:      false,
 		Kubeconfig: "",
@@ -39,6 +46,7 @@ func TestNew(t *testing.T) {
 		Manifests:  "",
 		Namespaces: "",
 		Pim:        pimConfig,
+		Tiller:     tillerConfig,
 	}
 
 	if !cmp.Equal(got, want) {

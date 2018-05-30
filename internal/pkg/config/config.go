@@ -6,6 +6,7 @@ import (
 
 	pimapi "git.tmaws.io/ProductInventoryManagement/go-pimapi"
 	"github.com/mgoodness/namespace-controller/pkg/ldap"
+	"github.com/mgoodness/namespace-controller/pkg/tiller"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 )
@@ -18,6 +19,7 @@ type Config struct {
 	Manifests  string
 	Namespaces string
 	Pim        pimapi.Config
+	Tiller     tiller.Config
 }
 
 // New creates a new Config object
