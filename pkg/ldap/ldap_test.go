@@ -78,7 +78,8 @@ func getTestLdap() *LDAP {
 		CommonOrgUnits:   "OU=Kubernetes",
 	}
 
-	return New(config, &MockClient{})
+	l, _ := New(config, &MockClient{})
+	return l
 }
 
 func getGoodAnnotations() map[string]string {
@@ -95,30 +96,30 @@ func getBadAnnotations() map[string]string {
 	}
 }
 
-func TestAddOU(t *testing.T) {
+func TestCreateOU(t *testing.T) {
 	l := getTestLdap()
 
 	dn := fmt.Sprintf("OU=prd1811,%s,%s", l.commonOrgUnits, l.baseDN)
-	if err := l.addOU(dn); err != nil {
+	if err := l.createOU(dn); err != nil {
 		t.Error(err)
 	}
 
 	dn = fmt.Sprintf("OU=prd367,%s,%s", l.commonOrgUnits, l.baseDN)
-	if err := l.addOU(dn); err == nil {
+	if err := l.createOU(dn); err == nil {
 		t.Error("Should fail to create OU")
 	}
 }
 
-func TestAddGroup(t *testing.T) {
+func TestCreateGroup(t *testing.T) {
 	l := getTestLdap()
 
 	dn := fmt.Sprintf("CN=kubernetes-prd1811-test,OU=prd1811,%s,%s", l.commonOrgUnits, l.baseDN)
-	if err := l.addOU(dn); err != nil {
+	if err := l.createOU(dn); err != nil {
 		t.Error(err)
 	}
 
 	dn = fmt.Sprintf("CN=kubernetes-prd367-test,OU=prd367,%s,%s", l.commonOrgUnits, l.baseDN)
-	if err := l.addOU(dn); err == nil {
+	if err := l.createOU(dn); err == nil {
 		t.Error("Should fail to create group")
 	}
 }

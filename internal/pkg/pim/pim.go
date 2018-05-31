@@ -35,7 +35,7 @@ func New(regex string, assetClient AssetClient) *PIM {
 
 func (p *PIM) ValidateNamespace(name string) error {
 	if match, _ := regexp.MatchString(p.regex, name); match != true {
-		return fmt.Errorf("Namespace %s is invalid. Must match regex %s", name, p.regex)
+		return fmt.Errorf("Must match regex %s", p.regex)
 	}
 
 	return nil

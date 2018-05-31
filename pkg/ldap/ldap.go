@@ -7,6 +7,8 @@ import (
 	"strings"
 
 	ldapapi "github.com/go-ldap/ldap"
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 )
 
 type searchRequest struct {
@@ -36,14 +38,25 @@ type LDAP struct {
 	namespace        string
 }
 
+var ldapLogger zerolog.Logger
+
+func init() {
+	ldapLogger = log.With().Str("component", "ldap").Logger()
+}
+
 // New creates a new LDAP struct
-func New(config *Config, ldapClient ldapapi.Client) *LDAP {
+func New(config *Config, ldapClient ldapapi.Client) (*LDAP, error) {
+
+	if err := ldapClient.Bind(config.Username, config.Password); err != nil {
+		return nil, err
+	}
+
 	return &LDAP{
 		annotationPrefix: config.AnnotationPrefix,
 		baseDN:           config.BaseDN,
 		client:           ldapClient,
 		commonOrgUnits:   config.CommonOrgUnits,
-	}
+	}, nil
 }
 
 // AddEntries creates LDAP entries
@@ -60,14 +73,14 @@ func (l *LDAP) AddEntries(namespace string, annotations map[string]string) error
 			found = true
 
 			dn := fmt.Sprintf("CN=kubernetes-%s-%s,OU=%s,%s,%s", namespace, keySplit[1], namespace, l.commonOrgUnits, l.baseDN)
-			members := strings.Split(value, ",")
+			members := strings.Split(strings.Replace(value, " ", "", -1), ",")
 
-			ouDN, _ := splitDN(dn)
-			if err := l.addOU(ouDN); err != nil {
+			_, ouDN := splitDN(dn)
+			if err := l.createOU(ouDN); err != nil {
 				return err
 			}
 
-			if err := l.addGroup(dn); err != nil {
+			if err := l.createGroup(dn); err != nil {
 				return err
 			}
 
@@ -84,13 +97,13 @@ func (l *LDAP) AddEntries(namespace string, annotations map[string]string) error
 	return nil
 }
 
-func (l *LDAP) addOU(dn string) error {
+func (l *LDAP) createOU(dn string) error {
 	name, base := splitDN(dn)
 
 	entries, err := l.searchOU(base, name)
 	if err != nil {
 		if strings.HasPrefix(err.Error(), `LDAP Result Code 32 "No Such Object"`) {
-			if err = l.addOU(base); err != nil {
+			if err = l.createOU(base); err != nil {
 				return err
 			}
 		}
@@ -98,6 +111,7 @@ func (l *LDAP) addOU(dn string) error {
 	}
 
 	if len(entries) != 0 {
+		ldapLogger.Debug().Msgf("Found %s", dn)
 		return nil
 	}
 
@@ -110,10 +124,11 @@ func (l *LDAP) addOU(dn string) error {
 		return err
 	}
 
+	ldapLogger.Debug().Msgf("Created %s", dn)
 	return nil
 }
 
-func (l *LDAP) addGroup(dn string) error {
+func (l *LDAP) createGroup(dn string) error {
 	name, base := splitDN(dn)
 
 	var entries []*ldapapi.Entry
@@ -123,6 +138,7 @@ func (l *LDAP) addGroup(dn string) error {
 	}
 
 	if len(entries) != 0 {
+		ldapLogger.Debug().Msgf("Found %s", dn)
 		return nil
 	}
 
@@ -137,6 +153,7 @@ func (l *LDAP) addGroup(dn string) error {
 		return err
 	}
 
+	ldapLogger.Debug().Msgf("Created %s", dn)
 	return nil
 }
 
@@ -162,6 +179,8 @@ func (l *LDAP) modifyGroupSetMembers(dn string, members []string) error {
 		}
 	}
 
+	// TODO: get current membership, only update if there are changes
+
 	request := ldapapi.NewModifyRequest(dn)
 	request.Replace("member", accounts)
 
@@ -169,6 +188,7 @@ func (l *LDAP) modifyGroupSetMembers(dn string, members []string) error {
 		return err
 	}
 
+	ldapLogger.Debug().Msgf("Updated members of %s", dn)
 	return nil
 }
 
