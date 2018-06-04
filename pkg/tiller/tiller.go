@@ -1,12 +1,14 @@
 package tiller
 
 import (
+	"github.com/davecgh/go-spew/spew"
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 	appsv1 "k8s.io/api/apps/v1"
-	apiv1 "k8s.io/api/core/v1"
-	rbac "k8s.io/api/rbac/v1beta1"
+	corev1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
@@ -16,92 +18,92 @@ type Config struct {
 }
 
 type Tiller struct {
-	annotation     string
-	defaultVersion string
+	Annotation     *string
+	DefaultVersion *string
 }
 
-func New(config *Config) *Tiller {
-	return &Tiller{
-		annotation:     config.Annotation,
-		defaultVersion: config.DefaultVersion,
-	}
+var tillerLogger zerolog.Logger
+
+func init() {
+	tillerLogger = log.With().Str("component", "tiller").Logger()
 }
 
-func (t *Tiller) BuildResources(namespace *apiv1.Namespace) (resources []runtime.Object) {
-	var version string
+func (t *Tiller) GetVersion(annotations map[string]string) *string {
+	for key, value := range annotations {
+		if key == *t.Annotation {
+			spew.Dump(key, value)
 
-	for key, value := range namespace.GetAnnotations() {
-		if key == t.annotation {
 			switch value {
 			case "":
-				version = t.defaultVersion
+				return t.DefaultVersion
 			default:
-				version = value
+				return &value
 			}
-			break
 		}
 	}
 
-	if version == "" {
-		return
-	}
+	return nil
+}
 
-	ns := namespace.GetName()
-
-	resources = append(resources, &appsv1.Deployment{
+func (t *Tiller) BuildDeployment(namespace *string, version *string) (deployment *appsv1.Deployment) {
+	return &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Labels: map[string]string{
 				"app": "helm",
 			},
-			Name: "tiller",
+			Name:      "tiller",
+			Namespace: *namespace,
 		},
 		Spec: appsv1.DeploymentSpec{
-			Template: apiv1.PodTemplateSpec{
+			Selector: &metav1.LabelSelector{
+				MatchLabels: map[string]string{"app": "helm"},
+			},
+			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{
 						"app":  "helm",
 						"tier": "cs",
 					},
 				},
-				Spec: apiv1.PodSpec{
-					Containers: []apiv1.Container{
+				Spec: corev1.PodSpec{
+					Containers: []corev1.Container{
 						{
 							Name:  "tiller",
-							Image: "gcr.io/kubernetes-helm/tiller:" + version,
-							Env: []apiv1.EnvVar{
-								apiv1.EnvVar{
+							Image: "gcr.io/kubernetes-helm/tiller:" + *version,
+							Env: []corev1.EnvVar{
+								corev1.EnvVar{
 									Name:  "TILLER_NAMESPACE",
-									Value: ns,
+									Value: *namespace,
 								},
 							},
-							LivenessProbe: &apiv1.Probe{
-								Handler: apiv1.Handler{
-									HTTPGet: &apiv1.HTTPGetAction{
+							LivenessProbe: &corev1.Probe{
+								Handler: corev1.Handler{
+									HTTPGet: &corev1.HTTPGetAction{
 										Path: "/liveness",
 										Port: intstr.FromInt(44135),
 									},
 								},
 							},
-							Ports: []apiv1.ContainerPort{
-								apiv1.ContainerPort{
+							Ports: []corev1.ContainerPort{
+								corev1.ContainerPort{
 									ContainerPort: 44134,
 								},
 							},
-							ReadinessProbe: &apiv1.Probe{
-								Handler: apiv1.Handler{
-									HTTPGet: &apiv1.HTTPGetAction{
+							ReadinessProbe: &corev1.Probe{
+								Handler: corev1.Handler{
+									HTTPGet: &corev1.HTTPGetAction{
 										Path: "/readiness",
 										Port: intstr.FromInt(44135),
 									},
 								},
 							},
-							Resources: apiv1.ResourceRequirements{
-								Limits: apiv1.ResourceList{
-									apiv1.ResourceMemory: resource.MustParse("512Mi"),
+							Resources: corev1.ResourceRequirements{
+								Limits: corev1.ResourceList{
+									corev1.ResourceMemory: resource.MustParse("512Mi"),
 								},
-								Requests: apiv1.ResourceList{
-									apiv1.ResourceCPU:    resource.MustParse("250m"),
-									apiv1.ResourceMemory: resource.MustParse("64Mi"),
+								Requests: corev1.ResourceList{
+									corev1.ResourceCPU:    resource.MustParse("250m"),
+									corev1.ResourceMemory: resource.MustParse("64Mi"),
 								},
 							},
 						},
@@ -110,25 +112,51 @@ func (t *Tiller) BuildResources(namespace *apiv1.Namespace) (resources []runtime
 				},
 			},
 		},
-	})
+	}
+}
 
-	resources = append(resources, &apiv1.Service{
+func (t *Tiller) BuildRoleBinding(namespace *string) *rbacv1.RoleBinding {
+	return &rbacv1.RoleBinding{
+		ObjectMeta: metav1.ObjectMeta{
+			Labels: map[string]string{
+				"app": "helm",
+			},
+			Name:      "tiller",
+			Namespace: *namespace,
+		},
+		RoleRef: rbacv1.RoleRef{
+			APIGroup: "rbac.authorization.k8s.io",
+			Kind:     "ClusterRole",
+			Name:     "tm:tiller",
+		},
+		Subjects: []rbacv1.Subject{
+			rbacv1.Subject{
+				Kind: "ServiceAccount",
+				Name: "tiller",
+			},
+		},
+	}
+}
+
+func (t *Tiller) BuildService(namespace *string) *corev1.Service {
+	return &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
 			Annotations: map[string]string{
 				"prometheus.io/path":             "/metrics",
 				"prometheus.io/port":             "44135",
 				"prometheus.io/scrape":           "true",
-				"ticketmaster.com/productcode":   ns,
+				"ticketmaster.com/productcode":   *namespace,
 				"ticketmaster.com/inventorycode": "tiller",
 			},
 			Labels: map[string]string{
 				"app": "helm",
 			},
-			Name: "tiller",
+			Name:      "tiller",
+			Namespace: *namespace,
 		},
-		Spec: apiv1.ServiceSpec{
-			Ports: []apiv1.ServicePort{
-				apiv1.ServicePort{
+		Spec: corev1.ServiceSpec{
+			Ports: []corev1.ServicePort{
+				corev1.ServicePort{
 					Port: 44134,
 				},
 			},
@@ -136,36 +164,17 @@ func (t *Tiller) BuildResources(namespace *apiv1.Namespace) (resources []runtime
 				"app": "helm",
 			},
 		},
-	})
+	}
+}
 
-	resources = append(resources, &apiv1.ServiceAccount{
+func (t *Tiller) BuildServiceAccount(namespace *string) *corev1.ServiceAccount {
+	return &corev1.ServiceAccount{
 		ObjectMeta: metav1.ObjectMeta{
 			Labels: map[string]string{
 				"app": "helm",
 			},
-			Name: "tiller",
+			Name:      "tiller",
+			Namespace: *namespace,
 		},
-	})
-
-	resources = append(resources, &rbac.RoleBinding{
-		ObjectMeta: metav1.ObjectMeta{
-			Labels: map[string]string{
-				"app": "helm",
-			},
-			Name: "tiller",
-		},
-		RoleRef: rbac.RoleRef{
-			APIGroup: "rbac.authorization.k8s.io",
-			Kind:     "ClusterRole",
-			Name:     "tm:tiller",
-		},
-		Subjects: []rbac.Subject{
-			rbac.Subject{
-				Kind: "ServiceAccount",
-				Name: "tiller",
-			},
-		},
-	})
-
-	return
+	}
 }

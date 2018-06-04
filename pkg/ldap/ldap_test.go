@@ -99,13 +99,13 @@ func getBadAnnotations() map[string]string {
 func TestCreateOU(t *testing.T) {
 	l := getTestLdap()
 
-	dn := fmt.Sprintf("OU=prd1811,%s,%s", l.commonOrgUnits, l.baseDN)
-	if err := l.createOU(dn); err != nil {
+	dn := fmt.Sprintf("OU=prd1811,%s,%s", *l.commonOrgUnits, *l.baseDN)
+	if err := l.createOU(&dn); err != nil {
 		t.Error(err)
 	}
 
-	dn = fmt.Sprintf("OU=prd367,%s,%s", l.commonOrgUnits, l.baseDN)
-	if err := l.createOU(dn); err == nil {
+	dn = fmt.Sprintf("OU=prd367,%s,%s", *l.commonOrgUnits, *l.baseDN)
+	if err := l.createOU(&dn); err == nil {
 		t.Error("Should fail to create OU")
 	}
 }
@@ -113,13 +113,13 @@ func TestCreateOU(t *testing.T) {
 func TestCreateGroup(t *testing.T) {
 	l := getTestLdap()
 
-	dn := fmt.Sprintf("CN=kubernetes-prd1811-test,OU=prd1811,%s,%s", l.commonOrgUnits, l.baseDN)
-	if err := l.createOU(dn); err != nil {
+	dn := fmt.Sprintf("CN=kubernetes-prd1811-test,OU=prd1811,%s,%s", *l.commonOrgUnits, *l.baseDN)
+	if err := l.createOU(&dn); err != nil {
 		t.Error(err)
 	}
 
-	dn = fmt.Sprintf("CN=kubernetes-prd367-test,OU=prd367,%s,%s", l.commonOrgUnits, l.baseDN)
-	if err := l.createOU(dn); err == nil {
+	dn = fmt.Sprintf("CN=kubernetes-prd367-test,OU=prd367,%s,%s", *l.commonOrgUnits, *l.baseDN)
+	if err := l.createOU(&dn); err == nil {
 		t.Error("Should fail to create group")
 	}
 }
@@ -127,16 +127,16 @@ func TestCreateGroup(t *testing.T) {
 func TestModifyGroupSetMembers(t *testing.T) {
 	l := getTestLdap()
 
-	dn := fmt.Sprintf("CN=kubernetes-prd1811-test,OU=prd1811,%s,%s", l.commonOrgUnits, l.baseDN)
-	if err := l.modifyGroupSetMembers(dn, []string{}); err == nil {
+	dn := fmt.Sprintf("CN=kubernetes-prd1811-test,OU=prd1811,%s,%s", *l.commonOrgUnits, *l.baseDN)
+	if err := l.modifyGroupSetMembers(&dn, []string{}); err == nil {
 		t.Error("Should have no group members")
 	}
 
-	if err := l.modifyGroupSetMembers(dn, []string{"mike.goodness"}); err != nil {
+	if err := l.modifyGroupSetMembers(&dn, []string{"mike.goodness"}); err != nil {
 		t.Error(err)
 	}
 
-	if err := l.modifyGroupSetMembers(dn, []string{"test"}); err == nil {
+	if err := l.modifyGroupSetMembers(&dn, []string{"test"}); err == nil {
 		t.Error("Should have no users found")
 	}
 }
@@ -144,11 +144,12 @@ func TestModifyGroupSetMembers(t *testing.T) {
 func TestAddEntries(t *testing.T) {
 	l := getTestLdap()
 
-	if err := l.AddEntries("prd1811", getGoodAnnotations()); err != nil {
+	namespace := "prd1811"
+	if err := l.AddEntries(&namespace, getGoodAnnotations()); err != nil {
 		t.Error(err)
 	}
 
-	if err := l.AddEntries("prd1811", getBadAnnotations()); err == nil {
+	if err := l.AddEntries(&namespace, getBadAnnotations()); err == nil {
 		t.Error("Should have no valid annotations")
 	}
 }

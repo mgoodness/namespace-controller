@@ -1,5 +1,5 @@
 hash: 09a1257ec4ed0fd9f5b78ac3ad3f8ce03d3177839e421719c736fcba07a5a2e0
-updated: 2018-05-31T18:13:12.265392-05:00
+updated: 2018-06-04T08:18:07.225758-05:00
 imports:
 - name: git.tmaws.io/ProductInventoryManagement/go-pimapi
   version: 320000649668009184dfa9d581b3b22321bc9a29
@@ -201,8 +201,6 @@ imports:
   version: 23781f4d6632d88e869066eaebb743857aa1ef9b
   subpackages:
   - discovery
-  - dynamic
-  - dynamic/fake
   - kubernetes
   - kubernetes/scheme
   - kubernetes/typed/admissionregistration/v1alpha1
@@ -240,7 +238,6 @@ imports:
   - plugin/pkg/client/auth/oidc
   - rest
   - rest/watch
-  - testing
   - tools/auth
   - tools/clientcmd
   - tools/clientcmd/api

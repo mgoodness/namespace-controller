@@ -1,79 +1,86 @@
 package tiller
 
 import (
+	"fmt"
 	"testing"
-
-	appsv1 "k8s.io/api/apps/v1"
-	apiv1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func TestBuildResources(t *testing.T) {
-	config := &Config{
-		Annotation:     "ticketmaster.com/tiller",
-		DefaultVersion: "v2.9.1",
+func TestGetVersion(t *testing.T) {
+	annotation := "ticketmaster.com/tiller"
+	defaultVersion := "v2.9.1"
+	tiller := &Tiller{
+		Annotation:     &annotation,
+		DefaultVersion: &defaultVersion,
 	}
 
-	tiller := New(config)
-
-	namespace := &apiv1.Namespace{
-		ObjectMeta: metav1.ObjectMeta{
-			Annotations: map[string]string{
-				"ticketmaster.com/tiller": "",
-			},
-			Name: "prd1811",
-		},
+	annotations := map[string]string{annotation: ""}
+	if version := tiller.GetVersion(annotations); version != &defaultVersion {
+		t.Errorf("Got %s, want %s", *version, defaultVersion)
 	}
 
-	resources := tiller.BuildResources(namespace)
-	if len(resources) != 4 {
-		t.Error("Should be 4 elements")
+	want := "v2.8.1"
+	annotations = map[string]string{annotation: want}
+	if version := tiller.GetVersion(annotations); *version != want {
+		t.Errorf("Got %s, want %s", *version, want)
 	}
 
-	for _, resource := range resources {
-		deployment, ok := resource.(*appsv1.Deployment)
-		if ok {
-			want := "gcr.io/kubernetes-helm/tiller:v2.9.1"
-			got := deployment.Spec.Template.Spec.Containers[0].Image
-			if got != want {
-				t.Errorf("Wanted %s, got %s", want, got)
-			}
-		} else {
-			continue
-		}
+	annotations = make(map[string]string)
+	if version := tiller.GetVersion(annotations); version != nil {
+		t.Errorf("Got %s, want nil", *version)
+	}
+}
+
+func TestBuildDeployment(t *testing.T) {
+	tiller := &Tiller{}
+
+	namespace := "prd354"
+	version := "v2.9.1"
+	deployment := tiller.BuildDeployment(&namespace, &version)
+
+	got := deployment.GetNamespace()
+	if got != namespace {
+		t.Errorf("Got %s, want %s", got, namespace)
 	}
 
-	namespace = &apiv1.Namespace{
-		ObjectMeta: metav1.ObjectMeta{
-			Annotations: map[string]string{
-				"ticketmaster.com/tiller": "v2.8.1",
-			},
-			Name: "prd1811",
-		},
+	got = deployment.Spec.Template.Spec.Containers[0].Image
+	want := fmt.Sprintf("gcr.io/kubernetes-helm/tiller:%s", version)
+	if got != want {
+		t.Errorf("Got %s, want %s", got, want)
 	}
+}
 
-	resources = tiller.BuildResources(namespace)
-	for _, resource := range resources {
-		deployment, ok := resource.(*appsv1.Deployment)
-		if ok {
-			want := "gcr.io/kubernetes-helm/tiller:v2.8.1"
-			got := deployment.Spec.Template.Spec.Containers[0].Image
-			if got != want {
-				t.Errorf("Wanted %s, got %s", want, got)
-			}
-		} else {
-			continue
-		}
+func TestBuildRoleBinding(t *testing.T) {
+	tiller := &Tiller{}
+
+	namespace := "prd354"
+	roleBinding := tiller.BuildRoleBinding(&namespace)
+
+	got := roleBinding.GetNamespace()
+	if got != namespace {
+		t.Errorf("Got %s, want %s", got, namespace)
 	}
+}
 
-	namespace = &apiv1.Namespace{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "prd1811",
-		},
+func TestBuildService(t *testing.T) {
+	tiller := &Tiller{}
+
+	namespace := "prd354"
+	service := tiller.BuildService(&namespace)
+
+	got := service.GetNamespace()
+	if got != namespace {
+		t.Errorf("Got %s, want %s", got, namespace)
 	}
+}
 
-	resources = tiller.BuildResources(namespace)
-	if len(resources) != 0 {
-		t.Error("Should be empty")
+func TestBuildServiceAccount(t *testing.T) {
+	tiller := &Tiller{}
+
+	namespace := "prd354"
+	serviceAccount := tiller.BuildServiceAccount(&namespace)
+
+	got := serviceAccount.GetNamespace()
+	if got != namespace {
+		t.Errorf("Got %s, want %s", got, namespace)
 	}
 }
